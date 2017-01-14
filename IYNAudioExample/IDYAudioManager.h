@@ -56,6 +56,7 @@ typedef NS_ENUM(NSInteger, IDYAudioUnitReverbPreset) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+NS_CLASS_AVAILABLE(10_10, 8_0)
 @protocol IDYEngineControl <NSObject>
 
 // Pause the engine.
@@ -71,6 +72,7 @@ typedef NS_ENUM(NSInteger, IDYAudioUnitReverbPreset) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+NS_CLASS_AVAILABLE(10_10, 8_0)
 @protocol IDYUnitSampleControl <NSObject>
 
 /*! @property stereoPan
@@ -101,6 +103,7 @@ typedef NS_ENUM(NSInteger, IDYAudioUnitReverbPreset) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+NS_CLASS_AVAILABLE(10_10, 8_0)
 @protocol IDYSequencerControl <NSObject>
 
 /*!	@property numberOfLoops
@@ -161,7 +164,55 @@ typedef NS_ENUM(NSInteger, IDYAudioUnitReverbPreset) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface IDYAudioManager : NSObject<IDYEngineControl, IDYUnitSampleControl, IDYSequencerControl>
+NS_CLASS_AVAILABLE(10_10, 8_0)
+@protocol IDYPlayerNodeControl <NSObject>
+
+/*! @property volume
+ @abstract Set a bus's input volume
+ @discussion
+ Range:      0.0 -> 1.0
+ Default:    1.0
+ Mixers:     AVAudioMixerNode, AVAudioEnvironmentNode
+ */
+@property (nonatomic) float nodeVolume;
+
+/*
+ Schedule playing of an entire audio file.
+ It is possible for the completionHandler to be called before rendering begins
+ or before the file is played completely.
+ */
+- (void)playerNodeScheduledFileReading:(NSString *)filePath completionHanlder:(void (^) (void))completionHanlder;
+
+/*
+ Schedule playing samples from an AVAudioBuffer.
+ It is possible for the completionHandler to be called before rendering begins
+ or before the buffer is played completely.
+ */
+- (void)playerNodeScheduledBufferReading:(NSString *)filePath error:(NSError **)outError;
+
+/*
+ play
+ Start or resume playback immediately.
+ */
+- (void)playerNode_play;
+
+/*
+ stop
+ Clear all of the node's previously scheduled events and stop playback.
+ */
+- (void)playerNode_stop;
+
+/*
+ Pause playback.
+ The player's sample time does not advance while the node is paused.
+ */
+- (void)playerNode_pause;
+
+@end
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+@interface IDYAudioManager : NSObject<IDYEngineControl, IDYUnitSampleControl, IDYSequencerControl, IDYPlayerNodeControl>
 
 /*! @property preGain
  @abstract
@@ -195,6 +246,12 @@ typedef NS_ENUM(NSInteger, IDYAudioUnitReverbPreset) {
 @property (nonatomic) IDYAudioDistortionPreset   distortionPreset;
 @property (nonatomic) IDYAudioUnitReverbPreset   unitReverbPreset;
 
+
+/*  AVAudioPlayerNode supports scheduling the playback of AVAudioBuffer instances,
+ or segments of audio files opened via AVAudioFile. Buffers and segments may be
+ scheduled at specific points in time, or to play immediately following preceding segments. 
+ */
+- (id)initWithAudioFileOfUrlString:(NSString *)urlString;
 
 /*
  Clear a unit's previous processing state.

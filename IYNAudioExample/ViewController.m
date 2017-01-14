@@ -21,10 +21,19 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    _audioManager = [[IDYAudioManager alloc] init];
-    
+    _audioManager = [[IDYAudioManager alloc] initWithAudioFileOfUrlString:[[NSBundle mainBundle] pathForResource:@"marimbaLoop" ofType:@"caf"]];
     _audioManager.stereoPan = 10.0;
 
+   // [_audioManager playerNodeScheduledFileReading:[[NSBundle mainBundle] pathForResource:@"marimbaLoop" ofType:@"caf"] completionHanlder:^{
+   //
+   //     NSLog(@"开始播放。。。");
+   // }];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        
+        [_audioManager engineStart];
+        [_audioManager playerNode_play];
+    });
 }
 
 

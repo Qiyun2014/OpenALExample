@@ -43,6 +43,7 @@
 @synthesize offsetTime = _offsetTime;
 @synthesize currentPositionInSeconds = _currentPositionInSeconds;
 @synthesize rate = _rate;
+@synthesize nodeVolume = _nodeVolume;
 
 
 - (id)initWithAudioFileOfUrlString:(NSString *)urlString{
@@ -50,9 +51,50 @@
     if (self == [super init]) {
         
         _audioFilePath = urlString;
+        [self initWithAudioSession];
+
+        _isSessionInterrupted = NO;
+        _isConfigChangePending = NO;
+        
+        _isRecording = NO;
+        _isRecordingSelected = NO;
+        
+        [self initWithPlayerNode];
+        [self initWithUnitSampler];
+        
+        [self initWithUnitDistortion];
+        [self initWithUnitReverb];
+
+        [self initWithEngine];
+        [self initWithSequencer];
+        
+        // sign up for notifications from the engine if there's a hardware config change
+        [[NSNotificationCenter defaultCenter] addObserverForName:AVAudioEngineConfigurationChangeNotification
+                                                          object:nil
+                                                           queue:[NSOperationQueue mainQueue]
+                                                      usingBlock:^(NSNotification * _Nonnull note) {
+           
+                                                          // if we've received this notification, something has changed and the engine has been stopped
+                                                          // re-wire all the connections and start the engine
+                                                          _isConfigChangePending = YES;
+                                                          
+                                                          if (!_isSessionInterrupted) {
+                                                              
+                                                              NSLog(@"Received a %@ notification!", AVAudioEngineConfigurationChangeNotification);
+                                                              [self initWithEngine];
+                                                              [self startEngine];
+
+                                                          }else{
+
+                                                              NSLog(@"Session is interrupted, deferring changes");
+                                                          }
+        }];
+        
+        [self startEngine];
     }
     return self;
 }
+
 
 #pragma mark    -   get/set method
 
@@ -76,6 +118,7 @@
     _volume = volume;
     _player.volume = _volume;
 }
+
 
 #pragma mark    -   init configure method
 
@@ -129,9 +172,12 @@
      loadAudioFilesAtURLs   加载多个音频文件，按队列有序播放
      */
     
+     /* The AVAudioUnitSampler class encapsulates Apple's Sampler Audio Unit. The sampler audio unit can be configured by loading different types of instruments such as an “.aupreset” file, a DLS or SF2 sound bank, an EXS24 instrument, a single audio file or with an array of audio files. The output is a single stereo bus. */
+    NSURL *bankURL = [NSURL fileURLWithPath:[[NSBundle bundleForClass:[self class]] pathForResource:@"gs_instruments" ofType:@"dls"]];
+
     // This method reads from file and allocates memory, so it should not be called on a real time thread.
     // bankMSB: MSB for the bank number for the instrument to load.  This is usually 0x79 for melodic instruments and 0x78 for percussion instruments.
-    BOOL success = [_sampler loadSoundBankInstrumentAtURL:[NSURL fileURLWithPath:_audioFilePath] program:0 bankMSB:0x79 bankLSB:0 error:&error];
+    BOOL success = [_sampler loadSoundBankInstrumentAtURL:bankURL program:0 bankMSB:0x79 bankLSB:0 error:&error];
     if (!success) NSLog(@"loadSoundBank : counld not open file from url = %@",_audioFilePath);
 }
 
@@ -166,12 +212,14 @@
     
     // Play buffers or segments of audio files.
     _player = [[AVAudioPlayerNode alloc] init];
+    NSError *error;
     
-    const float kStartDelayTime = 0.5; // sec
-    AVAudioFormat *outputFormat = [_player outputFormatForBus:0];
-    AVAudioFramePosition startSampleTime = _player.lastRenderTime.sampleTime + kStartDelayTime * outputFormat.sampleRate;
-    AVAudioTime *startTime = [AVAudioTime timeWithSampleTime:startSampleTime atRate:outputFormat.sampleRate];
-    [_player playAtTime:startTime];
+    [self playerNodeScheduledBufferReading:_audioFilePath error:&error];
+    
+    if (error) {
+        
+        NSLog(@"initWithPlayerNode error = %@",error);
+    }
 }
 
 
@@ -181,7 +229,8 @@
     BOOL success = NO;
     NSError *error;
 
-    /* A collection of MIDI events organized into AVMusicTracks, plus a player to play back the events.
+    /* mid文件为标准MIDI文件格式
+     A collection of MIDI events organized into AVMusicTracks, plus a player to play back the events.
      NOTE: The sequencer must be created after the engine is initialized and an instrument node is attached and connected
      */
     _sequencer = [[AVAudioSequencer alloc] initWithAudioEngine:_engine];
@@ -189,6 +238,7 @@
     // load sequencer loop  读取MIDI音频
     NSURL *midiFileURL = [NSURL fileURLWithPath:[[NSBundle bundleForClass:[self class]] pathForResource:@"bluesyRiff" ofType:@"mid"]];
     NSAssert(midiFileURL, @"couldn't find midi file");
+    
     success = [_sequencer loadFromURL:midiFileURL options:AVMusicSequenceLoadSMF_PreserveTracks error:&error];
     NSAssert(success, @"couldn't load midi file, %@", error.localizedDescription);
     
@@ -211,16 +261,16 @@
 - (void)initWithPCMBuffer{
 
     NSError *error;
-    NSURL *audioFilePath = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"" ofType:@""]];
+    NSURL *audioFilePath = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"drumLoop" ofType:@"caf"]];//[NSURL fileURLWithPath:_audioFilePath];
     
-    // Open a file for reading.
+    // Open a file for reading.  加载音频文件  如caf mp3 -> pcm
     AVAudioFile *audioFile = [[AVAudioFile alloc] initForReading:audioFilePath error:&error];
     if (error) NSLog(@"audio file reading error : %@",error);
     
     // Initialize a buffer that is to contain PCM audio samples.
     // @param format , The format of the PCM audio to be contained in the buffer.
     // @param frameCapacity , The capacity of the buffer in PCM sample frames.
-    _playerLoopBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:audioFile.fileFormat frameCapacity:(AVAudioFrameCount)audioFile.length];
+    _playerLoopBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:audioFile.processingFormat frameCapacity:(AVAudioFrameCount)audioFile.length];
     
     //The buffer into which to read from the file. Its format must match the file's processing format.
     BOOL success = [audioFile readIntoBuffer:_playerLoopBuffer error:&error];
@@ -301,6 +351,7 @@
     
     if (theInterruptionType == AVAudioSessionInterruptionTypeBegan) {
         
+        _isSessionInterrupted = YES;
         [_player stop];
         [_sequencer stop];
         [_engine reset];
@@ -554,6 +605,100 @@
         
         [_sequencer stop];
     }
+}
+
+#pragma mark    -   IDYPlayerNodeControl protocol
+
+// 从指定路径读取音频文件
+- (void)playerNodeScheduledFileReading:(NSString *)filePath completionHanlder:(void (^) (void))completionHanlder{
+    
+    if (!_player) _player = [[AVAudioPlayerNode alloc] init];
+    
+    NSError *error;
+    // Open a file for reading.
+    AVAudioFile *audioFile = [[AVAudioFile alloc] initForReading:[NSURL fileURLWithPath:filePath] error:&error];
+    
+    if (!error) {
+        
+        // Start the engine.
+        [_engine startAndReturnError:&error];
+        
+        if (!error) {
+            
+            const float kStartDelayTime = 0.5; // sec
+            AVAudioFormat *outputFormat = [_player outputFormatForBus:0];
+            
+            // _player.lastRenderTime : Will return nil if the engine is not running or if the node is not connected to an input or output node. 
+            AVAudioFramePosition startSampleTime = _player.lastRenderTime.sampleTime + kStartDelayTime * outputFormat.sampleRate;
+            AVAudioTime *startTime = [AVAudioTime timeWithSampleTime:startSampleTime atRate:outputFormat.sampleRate];
+            
+            // Schedule playing of an entire audio file.
+            [_player scheduleFile:audioFile
+                           atTime:startTime
+                completionHandler:completionHanlder?completionHanlder:nil];
+            
+        }else NSLog(@"engine start and return failed : %@",error);
+        
+    }else NSLog(@"player node scheduled file read failed : %@",error);
+}
+
+// 读取pcm buffer数据
+- (void)playerNodeScheduledBufferReading:(NSString *)filePath error:(NSError **)outError{
+    
+    if (!_player) _player = [[AVAudioPlayerNode alloc] init];
+    
+    // Open a file for reading.
+    AVAudioFile *audioFile = [[AVAudioFile alloc] initForReading:[NSURL fileURLWithPath:filePath] error:outError];
+    
+    // Initialize a buffer that is to contain PCM audio samples.
+    _playerLoopBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:[audioFile processingFormat] frameCapacity:(AVAudioFrameCount)audioFile.length];
+    
+    // Read an entire buffer.
+    [audioFile readIntoBuffer:_playerLoopBuffer error:outError];
+}
+
+- (void)playerNode_play{
+    
+    if (!_player.playing) {
+        
+        if (_isRecordingSelected) {
+            
+            [self playerNodeScheduledFileReading:_audioFilePath completionHanlder:nil];
+            
+        }else{
+            
+            // Schedule playing samples from an AVAudioBuffer.
+            [_player scheduleBuffer:_playerLoopBuffer
+                             atTime:nil
+                            options:AVAudioPlayerNodeBufferLoops
+                  completionHandler:nil];
+        }
+        
+        [_player play];
+    }
+}
+
+- (void)playerNode_stop{
+    
+    if (_player.playing) {
+        
+        [_player stop];
+    }
+}
+
+- (void)playerNode_pause{
+    
+    if (_player.playing) {
+        
+        [_player pause];
+    }
+}
+
+- (void)setNodeVolume:(float)nodeVolume{
+    
+    _nodeVolume = nodeVolume;
+    
+    [_player setVolume:_nodeVolume];
 }
 
 @end

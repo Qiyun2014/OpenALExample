@@ -25,6 +25,10 @@
 		AB7E3C651E29BB3E0093E6E1 /* AudioTestCase.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7E3C641E29BB3E0093E6E1 /* AudioTestCase.m */; };
 		AB7E3C671E29BB8E0093E6E1 /* GHUnit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7E3C661E29BB8E0093E6E1 /* GHUnit.a */; };
 		AB7E3C691E29BBCC0093E6E1 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7E3C681E29BBCC0093E6E1 /* XCTest.framework */; };
+		AB7E3D601E2A10680093E6E1 /* bluesyRiff.mid in Resources */ = {isa = PBXBuildFile; fileRef = AB7E3D5E1E2A10680093E6E1 /* bluesyRiff.mid */; };
+		AB7E3D611E2A10680093E6E1 /* drumLoop.caf in Resources */ = {isa = PBXBuildFile; fileRef = AB7E3D5F1E2A10680093E6E1 /* drumLoop.caf */; };
+		AB7E3D631E2A10BE0093E6E1 /* gs_instruments.dls in Resources */ = {isa = PBXBuildFile; fileRef = AB7E3D621E2A10BE0093E6E1 /* gs_instruments.dls */; };
+		AB7E3D651E2A17310093E6E1 /* marimbaLoop.caf in Resources */ = {isa = PBXBuildFile; fileRef = AB7E3D641E2A17310093E6E1 /* marimbaLoop.caf */; };
 		DBADFB9F878A88FBB3E17332 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 95221793D11C723A1CC3491C /* main.m */; };
 		EB3E99400D01EB0B5177A344 /* libPods-IYNAudioExample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FEA194FD622028B263119D8 /* libPods-IYNAudioExample.a */; };
 /* End PBXBuildFile section */
@@ -91,6 +95,10 @@
 		AB7E3C641E29BB3E0093E6E1 /* AudioTestCase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AudioTestCase.m; sourceTree = "<group>"; };
 		AB7E3C661E29BB8E0093E6E1 /* GHUnit.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = GHUnit.a; path = "../../Library/Developer/Xcode/DerivedData/IYNAudioExample-fqvsznhyoewhfhbehpywexbypyen/Build/Products/Debug-iphonesimulator/GHUnit/GHUnit.a"; sourceTree = "<group>"; };
 		AB7E3C681E29BBCC0093E6E1 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Platforms/iPhoneOS.platform/Developer/Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		AB7E3D5E1E2A10680093E6E1 /* bluesyRiff.mid */ = {isa = PBXFileReference; lastKnownFileType = audio.midi; path = bluesyRiff.mid; sourceTree = "<group>"; };
+		AB7E3D5F1E2A10680093E6E1 /* drumLoop.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = drumLoop.caf; sourceTree = "<group>"; };
+		AB7E3D621E2A10BE0093E6E1 /* gs_instruments.dls */ = {isa = PBXFileReference; lastKnownFileType = file; path = gs_instruments.dls; sourceTree = "<group>"; };
+		AB7E3D641E2A17310093E6E1 /* marimbaLoop.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = marimbaLoop.caf; sourceTree = "<group>"; };
 		BED7FCF3416CB3AF412B7E2F /* Pods-IYNAudioExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IYNAudioExample.debug.xcconfig"; path = "Pods/Target Support Files/Pods-IYNAudioExample/Pods-IYNAudioExample.debug.xcconfig"; sourceTree = "<group>"; };
 		D0F58F00C6ACF4F61C66AFAB /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS7.1.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -189,6 +197,10 @@
 		AB6ACEA01E275F5200591A20 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				AB7E3D641E2A17310093E6E1 /* marimbaLoop.caf */,
+				AB7E3D5E1E2A10680093E6E1 /* bluesyRiff.mid */,
+				AB7E3D5F1E2A10680093E6E1 /* drumLoop.caf */,
+				AB7E3D621E2A10BE0093E6E1 /* gs_instruments.dls */,
 				AB6ACEA11E275F5200591A20 /* main.m */,
 			);
 			name = "Supporting Files";
@@ -387,8 +399,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB7E3D651E2A17310093E6E1 /* marimbaLoop.caf in Resources */,
 				AB6ACEB01E275F5200591A20 /* LaunchScreen.storyboard in Resources */,
+				AB7E3D611E2A10680093E6E1 /* drumLoop.caf in Resources */,
+				AB7E3D601E2A10680093E6E1 /* bluesyRiff.mid in Resources */,
 				AB6ACEAD1E275F5200591A20 /* Assets.xcassets in Resources */,
+				AB7E3D631E2A10BE0093E6E1 /* gs_instruments.dls in Resources */,
 				AB6ACEAB1E275F5200591A20 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
